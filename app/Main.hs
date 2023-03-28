@@ -55,6 +55,9 @@ import Layout
 import Types
 
 import Prelude hiding (div, span)
+import qualified Data.Aeson.Key as A
+import qualified Data.Aeson.KeyMap as A
+import Data.Bifunctor (first)
 
 stateL :: Lens' st a -> (a -> Component st) -> Component st
 stateL l f = state $ \st -> f (view l st)
@@ -351,8 +354,8 @@ inspector draggedInst lv l = div
       , if isOpen _inspOpenNodes
           then case value of
             Just (A.Object o) ->
-              [ go (path <> "." <> k) k (lv % A.key k)
-              | (k, v) <- H.toList o
+              [ go (path <> "." <> k) k (lv % A.key (A.fromText k))
+              | (k, v) <- first A.toText <$> A.toList o
               ]
             Just (A.Array o) ->
               [ go (path <> "[" <> pack (show k) <> "]") (pack $ show k) (lv % A.nth k)

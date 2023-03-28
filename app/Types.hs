@@ -24,6 +24,9 @@ import Optics.Setter
 import Optics.TH
 
 import GHC.Generics (Generic)
+import qualified Data.Aeson.Key as A
+import qualified Data.Aeson.KeyMap as A
+import Data.Bifunctor (first)
 
 -- Utils -----------------------------------------------------------------------
 
@@ -60,7 +63,7 @@ type Path = [PathSegment]
 
 pathToLens :: A.ToJSON a => A.FromJSON a => Path -> AffineTraversal' A.Value a
 pathToLens [] = castOptic A._JSON
-pathToLens (Key k:ps) = A.key k % pathToLens ps
+pathToLens (Key k:ps) = A.key (A.fromText k) % pathToLens ps
 pathToLens (Index i:ps) = A.nth i % pathToLens ps
 
 --------------------------------------------------------------------------------
@@ -101,7 +104,7 @@ defaultNodeState = NodeState "root" False $ NodeArray False
 jsonToNodeState :: Text -> A.Value -> NodeState -> NodeState
 jsonToNodeState nn (A.Object m) (NodeState _ mo (NodeArray o children)) = NodeState nn mo $ NodeArray o
   [ jsonToNodeState k v $ fromMaybe (NodeState k False (NodeArray False [])) (H.lookup k chm)
-  | (k, v) <- H.toList m
+  | (k, v) <- first A.toText <$> A.toList m
   ]
   where
     chm = H.fromList [ (k, v) | v@(NodeState k _ _) <- children ]
